@@ -1,0 +1,122 @@
+.scoreboard {
+  display: flex;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.scoreboard-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: var(--color-surface);
+  border: var(--hud-border-width) solid var(--color-border-strong);
+  box-shadow: 0 2px 0 var(--color-border);
+}
+
+/* Team chips echo the coloured boxes on the board without changing the palette. */
+.scoreboard-team {
+  background: color-mix(in srgb, var(--score-color) 9%, white);
+  border-color: color-mix(in srgb, var(--score-color) 35%, var(--color-border));
+}
+
+.scoreboard-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgb(19 20 21 / 22%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 40%);
+  flex-shrink: 0;
+}
+
+.scoreboard-value {
+  position: relative;
+  isolation: isolate;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+}
+
+.scoreboard-glow-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: transparent;
+  pointer-events: none;
+  animation: score-glow 0.8s linear forwards;
+}
+
+@keyframes score-glow {
+  0% {
+    text-shadow:
+      0 0 0px var(--glow-color, currentColor),
+      0 0 0px var(--glow-color, currentColor);
+  }
+  10% {
+    text-shadow:
+      0 0 4px var(--glow-color, currentColor),
+      0 0 8px var(--glow-color, currentColor);
+  }
+  100% {
+    text-shadow:
+      0 0 20px transparent,
+      0 0 40px transparent;
+  }
+}
+
+.scoreboard-value-local {
+  min-width: 0;
+}
+
+.scoreboard-local {
+  color: var(--color-text);
+}
+
+.scoreboard-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.scoreboard-divider {
+  width: 1px;
+  background: var(--color-border);
+  opacity: 0.5;
+}
+
+/* Mobile: compact layout */
+@media (max-width: 640px) {
+  .scoreboard {
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+
+  .scoreboard-indicator {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scoreboard-value {
+    min-width: 16px;
+  }
+
+  .scoreboard-icon {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* Very small screens: more compact */
+@media (max-width: 400px) {
+  .scoreboard {
+    gap: 4px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .scoreboard-item {
+    padding: 4px;
+    gap: 4px;
+  }
+}

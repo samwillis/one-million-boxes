@@ -1,0 +1,38 @@
+.drawing-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  z-index: 5;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.drawing-cursor[data-visible="true"] {
+  visibility: visible;
+}
+
+/* Keep the OS cursor hidden for the whole mouse-enabled board session. */
+.game-canvas-container[data-pencil-enabled="true"],
+.game-canvas-container[data-pencil-enabled="true"] .game-canvas {
+  cursor: none;
+}
+
+.drawing-cursor-pencil {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  left: -4px;
+  top: -44px;
+  transform-origin: 4px 44px;
+  transform: rotate(var(--pencil-angle, 0deg));
+  filter: drop-shadow(1px 2px 1px rgb(19 20 21 / 20%));
+}
+
+.cursor-ammo {
+  position: absolute;
+  left: var(--dial-x, 22px);
+  top: var(--dial-y, 8px);
+}

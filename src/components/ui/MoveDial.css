@@ -1,0 +1,95 @@
+.move-dial {
+  position: relative;
+  width: var(--dial-size, 44px);
+  height: var(--dial-size, 44px);
+  background: #131415;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 85%),
+    0 2px 6px rgb(19 20 21 / 22%);
+}
+
+.move-dial-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.move-dial-track {
+  stroke: rgb(255 255 255 / 16%);
+}
+
+.move-dial-segment,
+.move-dial-charge {
+  stroke: var(--ammo-color);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.move-dial-segment--filled {
+  /* Spend instantly; refill smoothly without a drain competing with a bonus. */
+  transition: stroke-dashoffset 160ms ease-out;
+  stroke-dashoffset: 0;
+}
+
+.move-dial-charge {
+  opacity: 0.65;
+  animation: move-dial-refill var(--charge-duration) linear forwards;
+}
+
+.move-dial-readout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.move-dial-count {
+  font-size: var(--dial-count-size, 15px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.move-dial-label {
+  margin-top: 1px;
+  font-size: var(--dial-label-size, 6px);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c9cbcf;
+}
+
+.move-dial[data-empty="true"] {
+  animation: move-dial-empty 1s ease-in-out infinite;
+}
+
+@keyframes move-dial-refill {
+  from {
+    stroke-dashoffset: var(--charge-start);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes move-dial-empty {
+  50% {
+    box-shadow:
+      0 0 0 1px rgb(229 57 53 / 85%),
+      0 0 10px rgb(229 57 53 / 25%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .move-dial-charge {
+    animation: none !important;
+    stroke-dashoffset: var(--charge-start);
+  }
+}

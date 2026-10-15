@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Mobile viewport with proper scaling and notch support -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- Theme color for browser chrome (matches header/footer) -->
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#ffffff" />
+    <!-- iOS specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="1M Boxes" />
+    <!-- Disable phone number detection -->
+    <meta name="format-detection" content="telephone=no" />
+    <!-- Microsoft tile color -->
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="preload" href="/fonts/Inter-Latin.woff2" as="font" type="font/woff2" crossorigin />
+    <title>1 Million Boxes</title>
+    <meta
+      name="description"
+      content="A global, finite, realtime game of Dots & Boxes on a 1000×1000 grid. Four teams race to claim the most boxes."
+    />
+    <!-- OpenGraph meta tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="1 Million Boxes" />
+    <meta
+      property="og:description"
+      content="The world's largest game of Dots and Boxes. Complete the fourth edge. Claim the box."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="1 Million Boxes" />
+    <meta
+      name="twitter:description"
+      content="The world's largest game of Dots and Boxes. Complete the fourth edge. Claim the box."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

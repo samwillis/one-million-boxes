@@ -1,0 +1,12 @@
+.local/
+.agents/
+.neon
+.env*
+.git/
+.vercel/
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.log

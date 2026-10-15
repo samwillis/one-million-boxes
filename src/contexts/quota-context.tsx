@@ -1,0 +1,298 @@
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { MAX_QUOTA, QUOTA_REFILL_INTERVAL_MS, QUOTA_STORAGE_KEY } from "../lib/config"
+import type { ReactNode } from "react"
+
+// Re-export for backward compatibility
+export { MAX_QUOTA }
+export const QUOTA_KEY = QUOTA_STORAGE_KEY
+export const REFILL_INTERVAL_MS = QUOTA_REFILL_INTERVAL_MS
+const LOCAL_BOXES_KEY = `boxes:local-completed`
+
+export interface QuotaState {
+  remaining: number
+  lastRefillAt: number
+  version: number
+}
+
+export interface BonusPosition {
+  x: number
+  y: number
+}
+
+export interface QuotaContextValue {
+  /** Current remaining quota tokens */
+  remaining: number
+  /** Maximum quota tokens */
+  max: number
+  /** Seconds until next refill (0 if full) */
+  refillIn: number
+  /** Browser-clock refill deadline, aligned with the latest server quota response. */
+  nextRefillAt: number | null
+  /** Counts blocked draw attempts so repeated clicks can restart move feedback. */
+  emptyMoveAttempts: number
+  /** Signal an out-of-moves response from the server. */
+  notifyNoMoves: () => void
+  /** Number of bonus tokens earned (for toast animation), resets after reading */
+  bonusCount: number
+  /** Screen position where bonus toast should appear */
+  bonusPosition: BonusPosition | null
+  /** Set the position for the bonus toast (called by GameCanvas) */
+  setBonusPosition: (pos: BonusPosition | null) => void
+  /** Clear the bonus count after showing toast */
+  clearBonus: () => void
+  /** Optimistically consume a token. Returns false if no tokens available. */
+  consume: () => boolean
+  /** Sync quota state from server response. Use this instead of manual refunds. */
+  syncFromServer: (remaining: number, refillIn?: number, boxesClaimed?: number) => void
+  /** Legacy refund for error cases where server doesn't respond */
+  refund: () => void
+  /** Local user's total completed boxes count (persisted in localStorage) */
+  localBoxesCompleted: number
+}
+
+const QuotaContext = createContext<QuotaContextValue | null>(null)
+
+function loadQuota(): QuotaState {
+  try {
+    const stored = localStorage.getItem(QUOTA_KEY)
+    if (stored) {
+      const state = JSON.parse(stored) as QuotaState
+
+      // Calculate refills since last visit
+      const now = Date.now()
+      const elapsed = now - state.lastRefillAt
+      const refills = Math.floor(elapsed / REFILL_INTERVAL_MS)
+
+      if (refills > 0) {
+        state.remaining = Math.min(MAX_QUOTA, state.remaining + refills)
+        state.lastRefillAt += refills * REFILL_INTERVAL_MS
+      }
+
+      return state
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  return {
+    remaining: MAX_QUOTA,
+    lastRefillAt: Date.now(),
+    version: 1,
+  }
+}
+
+function saveQuota(state: QuotaState): void {
+  localStorage.setItem(QUOTA_KEY, JSON.stringify(state))
+}
+
+function loadLocalBoxes(): number {
+  try {
+    const stored = localStorage.getItem(LOCAL_BOXES_KEY)
+    if (stored) {
+      return parseInt(stored, 10) || 0
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 0
+}
+
+export function QuotaProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<QuotaState>(() => loadQuota())
+  const [refillIn, setRefillIn] = useState(0)
+  const [emptyMoveAttempts, setEmptyMoveAttempts] = useState(0)
+  const notifyNoMoves = useCallback(() => setEmptyMoveAttempts((count) => count + 1), [])
+  const [bonusCount, setBonusCount] = useState(0)
+  const [bonusPosition, setBonusPosition] = useState<BonusPosition | null>(null)
+  const [localBoxesCompleted, setLocalBoxesCompleted] = useState(loadLocalBoxes)
+
+  // Persist to localStorage
+  useEffect(() => {
+    saveQuota(state)
+  }, [state])
+
+  // Refill timer - check every 1 second
+  // Uses functional update to avoid stale closure issues
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+
+      setState((s) => {
+        const elapsed = now - s.lastRefillAt
+        const refills = Math.floor(elapsed / REFILL_INTERVAL_MS)
+
+        if (refills > 0 && s.remaining < MAX_QUOTA) {
+          const newRemaining = Math.min(MAX_QUOTA, s.remaining + refills)
+          const newLastRefillAt = s.lastRefillAt + refills * REFILL_INTERVAL_MS
+
+          // Update refillIn based on new state
+          const timeSinceNewRefill = now - newLastRefillAt
+          const timeUntilNext = Math.max(0, REFILL_INTERVAL_MS - timeSinceNewRefill)
+          setRefillIn(Math.ceil(timeUntilNext / 1000))
+
+          return {
+            ...s,
+            remaining: newRemaining,
+            lastRefillAt: newLastRefillAt,
+          }
+        }
+
+        // No refill needed, just update the countdown
+        const timeSinceLastRefill = now - s.lastRefillAt
+        const timeUntilNext = Math.max(0, REFILL_INTERVAL_MS - timeSinceLastRefill)
+        setRefillIn(Math.ceil(timeUntilNext / 1000))
+
+        return s // No state change
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Cross-tab sync via storage event
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === QUOTA_KEY && e.newValue) {
+        setState(JSON.parse(e.newValue))
+      }
+      if (e.key === LOCAL_BOXES_KEY && e.newValue) {
+        setLocalBoxesCompleted(parseInt(e.newValue, 10) || 0)
+      }
+    }
+
+    window.addEventListener(`storage`, handler)
+    return () => window.removeEventListener(`storage`, handler)
+  }, [])
+
+  // Optimistically consume a token (called before server request)
+  const consume = useCallback(() => {
+    if (state.remaining <= 0) {
+      notifyNoMoves()
+      return false
+    }
+
+    setState((s) => ({
+      ...s,
+      remaining: s.remaining - 1,
+      // A full meter has no pending refill. Start its clock on the first spend,
+      // rather than immediately refilling from time spent idle at full quota.
+      lastRefillAt: s.remaining === MAX_QUOTA ? Date.now() : s.lastRefillAt,
+    }))
+
+    return true
+  }, [state.remaining, notifyNoMoves])
+
+  // Sync quota from server response (includes any refunds for completed boxes)
+  const syncFromServer = useCallback(
+    (remaining: number, serverRefillIn?: number, boxesClaimed?: number) => {
+      const now = Date.now()
+
+      // Track bonus for toast animation and increment local boxes count
+      if (boxesClaimed && boxesClaimed > 0) {
+        setBonusCount(boxesClaimed)
+        setLocalBoxesCompleted((prev) => {
+          const newCount = prev + boxesClaimed
+          try {
+            localStorage.setItem(LOCAL_BOXES_KEY, String(newCount))
+          } catch {
+            // Ignore storage errors
+          }
+          return newCount
+        })
+      }
+
+      // Calculate lastRefillAt to align with server's refillIn
+      // This ensures the interval timer computes the same countdown
+      setState((s) => {
+        let newLastRefillAt: number
+        if (serverRefillIn !== undefined && serverRefillIn >= 0) {
+          if (serverRefillIn === 0 && remaining < MAX_QUOTA) {
+            // Server says refill is imminent (less than 1 second away)
+            // Set lastRefillAt so client will refill on next timer tick
+            newLastRefillAt = now - REFILL_INTERVAL_MS
+            setRefillIn(0)
+          } else if (serverRefillIn > 0) {
+            // Server says "next refill in X seconds"
+            // So lastRefillAt should be: now - (interval - X*1000)
+            // Clamp serverRefillIn to interval to prevent future timestamps
+            const clampedRefillMs = Math.min(serverRefillIn * 1000, REFILL_INTERVAL_MS)
+            newLastRefillAt = now - (REFILL_INTERVAL_MS - clampedRefillMs)
+            setRefillIn(Math.floor(clampedRefillMs / 1000))
+          } else {
+            // refillIn=0 and quota is full - no pending refill
+            newLastRefillAt = now
+            setRefillIn(0)
+          }
+        } else {
+          // No server refillIn provided - keep current timing
+          newLastRefillAt = s.lastRefillAt
+        }
+
+        return {
+          ...s,
+          remaining: Math.min(MAX_QUOTA, Math.max(0, remaining)),
+          lastRefillAt: newLastRefillAt,
+        }
+      })
+    },
+    [],
+  )
+
+  // Clear bonus count and position after toast is shown
+  const clearBonus = useCallback(() => {
+    setBonusCount(0)
+    setBonusPosition(null)
+  }, [])
+
+  // Legacy refund for network errors where server doesn't respond
+  const refund = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      remaining: Math.min(MAX_QUOTA, s.remaining + 1),
+    }))
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    fetch("/api/quota", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (active && result.ok) syncFromServer(result.quotaRemaining, result.refillIn)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [syncFromServer])
+
+  return (
+    <QuotaContext.Provider
+      value={{
+        remaining: state.remaining,
+        max: MAX_QUOTA,
+        refillIn,
+        nextRefillAt: state.remaining < MAX_QUOTA ? state.lastRefillAt + REFILL_INTERVAL_MS : null,
+        emptyMoveAttempts,
+        notifyNoMoves,
+        bonusCount,
+        bonusPosition,
+        setBonusPosition,
+        clearBonus,
+        consume,
+        syncFromServer,
+        refund,
+        localBoxesCompleted,
+      }}
+    >
+      {children}
+    </QuotaContext.Provider>
+  )
+}
+
+export function useQuota(): QuotaContextValue {
+  const ctx = useContext(QuotaContext)
+  if (!ctx) {
+    throw new Error(`useQuota must be used within QuotaProvider`)
+  }
+  return ctx
+}

@@ -1,0 +1,11 @@
+{
+  "spaces": 2,
+  "wrapLimit": 100,
+  "keepNewline": true,
+  "noSpaceFunction": false,
+  "keywordCase": "uppercase",
+  "functionCase": "lowercase",
+  "noRcFile": true,
+  "stripComments": false,
+  "placeholder": "IF v_code IS NULL THEN\\n[\\s\\S]*?\\n      \\);"
+}

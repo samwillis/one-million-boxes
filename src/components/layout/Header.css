@@ -1,0 +1,174 @@
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+  z-index: 10;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.header-logo {
+  height: 22px;
+  width: auto;
+  /* A solid bottom edge avoids shadows showing through the transparent logo. */
+  border-bottom: 3px solid var(--hud-edge);
+}
+
+/* Show full logo by default, hide mini */
+.header-logo-mini {
+  display: none;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: var(--hud-border-width) solid var(--hud-outline);
+  border-radius: var(--hud-radius);
+  box-shadow: var(--hud-shadow);
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--color-text);
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.header-button:hover {
+  background: var(--color-surface-hover);
+}
+
+.header-button:active {
+  background: var(--color-surface-active);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--hud-edge);
+}
+
+.header-button svg {
+  flex-shrink: 0;
+}
+
+/* Floating scoreboard - hidden on desktop, shown when header scoreboard hidden */
+.floating-scoreboard {
+  display: none;
+}
+
+/* Medium screens: move scoreboard to floating island */
+@media (max-width: 1100px) {
+  /* Hide scoreboard in header */
+  .header-scoreboard {
+    display: none;
+  }
+
+  /* Show floating scoreboard */
+  .floating-scoreboard {
+    display: flex;
+    max-width: calc(100% - 16px);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    position: absolute;
+    top: calc(var(--header-height) + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px;
+    border-radius: 12px;
+    border: var(--hud-border-width) solid var(--hud-outline);
+    box-shadow: var(--hud-shadow);
+    z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* Tablet/Mobile: icon-only buttons and layout changes */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+    gap: 6px;
+  }
+
+  .header-button-text {
+    display: none;
+  }
+
+  .header-button {
+    padding: 0;
+    width: 44px;
+    height: 40px;
+    min-width: 44px;
+    min-height: 40px;
+    justify-content: center;
+  }
+
+  .header-button svg {
+    display: block;
+  }
+
+  .header-left {
+    flex: 1;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  /* Keep identity together rather than stranding the team between controls. */
+  .header-left .team-badge {
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .header-right {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+  }
+
+  /* Show mini logo, hide full logo on tablet/mobile */
+  .header-logo-full {
+    display: none;
+  }
+
+  .header-logo-mini {
+    display: block;
+    height: 22px;
+  }
+}
+
+/* Keep the logo readable while fitting the smallest phone widths. */
+@media (max-width: 360px) {
+  .header-logo {
+    height: 20px;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+}

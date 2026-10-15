@@ -1,0 +1,11 @@
+node_modules/
+.local/
+dist/
+coverage/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+public/og-image.svg
+
+# PL/pgSQL bodies are formatted by scripts/format-sql.ts.
+*.sql

@@ -1,0 +1,253 @@
+import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
+import { Dialog } from "@base-ui/react/dialog"
+import { TEAMS, TEAM_COLORS } from "../../../shared/teams"
+import { useTeam } from "../../contexts/team-context"
+import {
+  MAX_QUOTA,
+  QUOTA_BONUS_DOUBLE,
+  QUOTA_BONUS_SINGLE,
+  QUOTA_REFILL_INTERVAL_MS,
+  TOTAL_BOX_COUNT,
+} from "../../lib/config"
+import type { TeamName } from "../../../shared/teams"
+import "./AboutDialog.css"
+
+export interface AboutDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  scores?: [number, number, number, number]
+  isLoading?: boolean
+}
+
+interface TeamScore {
+  team: TeamName
+  score: number
+  color: string
+}
+
+export function AboutDialog({
+  open,
+  onOpenChange,
+  scores = [0, 0, 0, 0],
+  isLoading = false,
+}: AboutDialogProps) {
+  const { team: userTeam } = useTeam()
+  const userTeamColor = TEAM_COLORS[userTeam].primary
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [hasOverflowTop, setHasOverflowTop] = useState(false)
+  const [hasOverflowBottom, setHasOverflowBottom] = useState(false)
+  const resizeObserverRef = useRef<ResizeObserver | null>(null)
+
+  // Check scroll position and overflow state
+  useEffect(() => {
+    if (!open) {
+      setHasOverflowTop(false)
+      setHasOverflowBottom(false)
+      resizeObserverRef.current?.disconnect()
+      return
+    }
+
+    // Wait for portal to mount, then set up observers
+    const timeoutId = setTimeout(() => {
+      const content = contentRef.current
+      if (!content) return
+
+      // Ensure dialog starts at top on open
+      content.scrollTop = 0
+
+      const checkOverflow = () => {
+        const { scrollTop, scrollHeight, clientHeight } = content
+        // Has content hidden above?
+        setHasOverflowTop(scrollTop > 1)
+        // Has content hidden below? (1px threshold for rounding)
+        setHasOverflowBottom(scrollTop + clientHeight < scrollHeight - 1)
+      }
+
+      // Check immediately
+      checkOverflow()
+
+      // Listen for scroll events
+      content.addEventListener(`scroll`, checkOverflow, { passive: true })
+
+      // Use ResizeObserver to detect size changes
+      resizeObserverRef.current = new ResizeObserver(checkOverflow)
+      resizeObserverRef.current.observe(content)
+
+      // Store scroll listener cleanup
+      return () => {
+        content.removeEventListener(`scroll`, checkOverflow)
+      }
+    }, 50)
+
+    return () => {
+      clearTimeout(timeoutId)
+      resizeObserverRef.current?.disconnect()
+      contentRef.current?.removeEventListener(`scroll`, () => {})
+    }
+  }, [open])
+
+  // Calculate claimed and remaining
+  const totalClaimed = scores.reduce((a, b) => a + b, 0)
+  const remaining = TOTAL_BOX_COUNT - totalClaimed
+
+  // Create team scores sorted by score (descending)
+  const hasScores = totalClaimed > 0
+  const teamScores: Array<TeamScore> = TEAMS.map((team, i) => ({
+    team,
+    score: scores[i],
+    color: TEAM_COLORS[team].primary,
+  }))
+
+  if (hasScores) {
+    teamScores.sort((a, b) => b.score - a.score)
+  }
+
+  const refillSeconds = QUOTA_REFILL_INTERVAL_MS / 1000
+
+  // Format team name for display (capitalize first letter only)
+  const teamDisplayName = userTeam.charAt(0) + userTeam.slice(1).toLowerCase()
+
+  // Yellow team needs dark text for contrast
+  const buttonTextColor = userTeam === `YELLOW` ? `#333` : `white`
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="about-dialog-backdrop" />
+        <Dialog.Popup className="about-dialog-popup">
+          <Dialog.Title className={`about-dialog-title${hasOverflowTop ? ` has-overflow` : ``}`}>
+            <img src="/logo.svg" alt="1 Million Boxes" className="about-dialog-logo" />
+          </Dialog.Title>
+
+          <div className="about-dialog-content" ref={contentRef}>
+            <p>
+              A massive multiplayer{` `}
+              <a
+                href="https://en.wikipedia.org/wiki/Dots_and_boxes"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Dots &amp; Boxes
+              </a>
+              {` `}
+              game with{` `}
+              <strong>1,000,000 boxes</strong> on a 1000×1000 grid.
+            </p>
+
+            <h3 className="about-dialog-section-title">How to Play</h3>
+            <ul className="about-dialog-rules">
+              <li>
+                <span className="desktop-only">Click</span>
+                <span className="mobile-only">Tap</span> between two dots to draw a line
+              </li>
+              <li>Complete all four sides of a box to claim it for your team</li>
+              <li>The team with the most boxes wins!</li>
+            </ul>
+
+            <h3 className="about-dialog-section-title">Moves &amp; refills</h3>
+            <ul className="about-dialog-rules">
+              <li>
+                You have up to <strong>{MAX_QUOTA} moves</strong> available at a time
+              </li>
+              <li>
+                Moves refill by <strong>1 every {refillSeconds} seconds</strong>
+              </li>
+              <li>
+                <strong>Bonus:</strong> Completing a box gives you{` `}
+                <strong>+{QUOTA_BONUS_SINGLE} moves</strong> (refund + bonus)
+              </li>
+              <li>
+                Complete 2 boxes with one line? Get{` `}
+                <strong>+{QUOTA_BONUS_DOUBLE} moves</strong> back!
+              </li>
+            </ul>
+
+            <h3 className="about-dialog-section-title">Team Leaderboard</h3>
+            <div className="about-dialog-leaderboard">
+              {isLoading
+                ? TEAMS.map((team, index) => (
+                    <div
+                      key={team}
+                      className="about-leaderboard-item about-leaderboard-item--loading"
+                    >
+                      <span className="about-leaderboard-rank">{index + 1}</span>
+                      <span className="about-leaderboard-dot about-skeleton" />
+                      <span className="about-leaderboard-team about-skeleton about-skeleton-text" />
+                      <span className="about-leaderboard-score about-skeleton about-skeleton-number" />
+                    </div>
+                  ))
+                : teamScores.map(({ team, score, color }, index) => (
+                    <div
+                      key={team}
+                      className="about-leaderboard-item"
+                      style={{ "--score-color": color } as CSSProperties}
+                    >
+                      <span className="about-leaderboard-rank">{index + 1}</span>
+                      <span className="about-leaderboard-dot" style={{ background: color }} />
+                      <span className="about-leaderboard-team">
+                        {team.charAt(0) + team.slice(1).toLowerCase()}
+                      </span>
+                      <span className="about-leaderboard-score">{score.toLocaleString()}</span>
+                    </div>
+                  ))}
+            </div>
+
+            <div className="about-dialog-stats">
+              <div className="about-stat">
+                {isLoading ? (
+                  <span className="about-stat-value about-skeleton about-skeleton-number" />
+                ) : (
+                  <span className="about-stat-value">{remaining.toLocaleString()}</span>
+                )}
+                <span className="about-stat-label">boxes available</span>
+              </div>
+              <div className="about-stat">
+                {isLoading ? (
+                  <span className="about-stat-value about-skeleton about-skeleton-number" />
+                ) : (
+                  <span className="about-stat-value">{totalClaimed.toLocaleString()}</span>
+                )}
+                <span className="about-stat-label">boxes claimed</span>
+              </div>
+            </div>
+
+            <p className="about-dialog-tech">
+              Built with{` `}
+              <a
+                href="https://neon.com/docs/realtime/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Neon Realtime
+              </a>
+              {` `}for real-time synchronization,{` `}
+              <a
+                href="https://github.com/samwillis/one-million-boxes"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                learn how we built it
+              </a>
+              .
+            </p>
+          </div>
+
+          <div
+            className={`about-dialog-button-container${hasOverflowBottom ? ` has-overflow` : ``}`}
+          >
+            <Dialog.Close
+              className="about-dialog-close-button"
+              style={{
+                background: userTeamColor,
+                color: buttonTextColor,
+              }}
+            >
+              You're on the {teamDisplayName} team, Play!
+            </Dialog.Close>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}

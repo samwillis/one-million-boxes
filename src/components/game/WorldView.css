@@ -1,0 +1,102 @@
+.world-view-wrapper {
+  position: absolute;
+  bottom: var(--minimap-margin);
+  right: var(--minimap-margin);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 100;
+}
+
+.world-view-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.minimap-sound-button {
+  border-radius: var(--hud-radius);
+  box-shadow: var(--hud-shadow);
+}
+
+/* Use the same vertical zoom stack beside the minimap at every screen size. */
+.minimap-zoom-controls {
+  flex-direction: column-reverse;
+  box-shadow: var(--hud-shadow);
+  border-radius: var(--hud-radius);
+}
+
+.minimap-zoom-controls .zoom-button-left {
+  border-radius: 0 0 var(--hud-radius) var(--hud-radius);
+  border-right: var(--hud-border-width) solid var(--hud-outline);
+}
+
+.minimap-zoom-controls .zoom-button-right {
+  border-radius: var(--hud-radius) var(--hud-radius) 0 0;
+  border-bottom: none;
+}
+
+.world-view-container {
+  position: relative;
+  width: var(--minimap-size);
+  height: var(--minimap-size);
+  border-radius: 12px;
+  border: var(--hud-border-width) solid var(--hud-outline);
+  box-shadow: var(--hud-shadow);
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* A small map label belongs to the frame and never intercepts navigation. */
+.world-view-container::after {
+  content: "Board";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--color-text);
+  color: white;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.world-view-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+/* Pop animation for new moves */
+.world-view-pop {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  animation: worldview-pop 0.8s ease-out forwards;
+}
+
+@keyframes worldview-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+  }
+}

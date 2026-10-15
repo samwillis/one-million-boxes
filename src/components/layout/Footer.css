@@ -1,0 +1,117 @@
+/* Floating HUD controls leave the board playable in the gaps between them. */
+.footer {
+  position: absolute;
+  bottom: var(--minimap-margin);
+  left: var(--minimap-margin);
+  right: var(--minimap-margin);
+  height: var(--bottom-controls-height);
+  display: grid;
+  grid-template-columns: minmax(56px, 1fr) auto minmax(56px, 1fr);
+  align-items: end;
+  gap: 12px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+}
+
+.footer-move-dial {
+  --dial-size: var(--bottom-dial-size);
+  --dial-count-size: 19px;
+  --dial-label-size: 8px;
+  pointer-events: auto;
+}
+
+/* Keep the accessible readout, but let drawing input through the hidden dial. */
+.game-layout:has(.drawing-cursor[data-visible="true"]) .footer-move-dial {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: var(--hud-border-width) solid var(--hud-outline);
+  border-radius: var(--hud-radius);
+  font-size: 0.875rem;
+  font-weight: 650;
+  background: var(--color-accent);
+  color: var(--color-text);
+  box-shadow: var(--hud-shadow);
+  pointer-events: auto;
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.footer-link:hover {
+  background: var(--color-accent-hover);
+}
+
+.footer-link:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--hud-edge);
+}
+
+.footer-link svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.footer-link-mobile {
+  display: none;
+}
+
+@media (max-width: 1030px) {
+  .footer-link-extra {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    gap: 8px;
+  }
+
+  .footer-link-desktop {
+    display: none;
+  }
+
+  .footer-link-mobile {
+    display: inline;
+  }
+
+  .footer-link {
+    min-height: var(--touch-min);
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Anchor the link at the bottom even when the fixed dial follows the cursor. */
+@media (max-width: 600px) {
+  .footer-link {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+  }
+
+  .footer-left {
+    position: absolute;
+    left: 0;
+    bottom: calc(var(--touch-min) + 12px);
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .footer-move-dial {
+    --dial-count-size: 15px;
+    --dial-label-size: 6px;
+  }
+}
